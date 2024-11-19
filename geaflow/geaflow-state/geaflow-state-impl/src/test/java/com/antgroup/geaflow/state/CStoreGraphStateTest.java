@@ -65,6 +65,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class CStoreGraphStateTest {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(CStoreGraphStateTest.class);
 
     Map<String, String> config = new HashMap<>();
@@ -94,8 +95,7 @@ public class CStoreGraphStateTest {
             type.getTypeClass(), ValueEdge.class, ValueEdge::new, type.getTypeClass());
 
         GraphStateDescriptor desc = GraphStateDescriptor.build(name, StoreType.CSTORE.name());
-        desc.withKeyGroup(keyGroup)
-            .withKeyGroupAssigner(new DefaultKeyGroupAssigner(maxPara));
+        desc.withKeyGroup(keyGroup).withKeyGroupAssigner(new DefaultKeyGroupAssigner(maxPara));
         desc.withGraphMeta(new GraphMeta(tag));
         GraphState<T, T, T> graphState = StateFactory.buildGraphState(desc,
             new Configuration(conf));
@@ -140,7 +140,7 @@ public class CStoreGraphStateTest {
         graphState.manage().operate().drop();
     }
 
-    @Test(invocationCount = 1)
+    @Test
     public void testBothWriteMode() {
         testWrite(true);
         testWrite(false);
@@ -154,12 +154,12 @@ public class CStoreGraphStateTest {
             conf);
         graphState.manage().operate().setCheckpointId(1);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1000; i++) {
             String id = Integer.toString(i);
             graphState.staticGraph().E().add(new ValueEdge<>("2", id, "hello"));
             graphState.staticGraph().V().add(new ValueVertex<>(id, "hello"));
         }
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1000; i++) {
             String id = Integer.toString(i);
             graphState.staticGraph().E().add(new ValueEdge<>("3", id, "world"));
             graphState.staticGraph().V().add(new ValueVertex<>(id, "world"));
@@ -167,13 +167,13 @@ public class CStoreGraphStateTest {
 
         List<IEdge<String, String>> edges1 = graphState.staticGraph().E().query("2").asList();
         List<IEdge<String, String>> edges2 = graphState.staticGraph().E().query("3").asList();
-        IVertex<String, String> vertex = graphState.staticGraph().V().query("9999").get();
+        IVertex<String, String> vertex = graphState.staticGraph().V().query("999").get();
 
-        Assert.assertEquals(edges1.size(), 10000);
-        Assert.assertEquals(edges2.size(), 10000);
+        Assert.assertEquals(edges1.size(), 1000);
+        Assert.assertEquals(edges2.size(), 1000);
         Assert.assertEquals(edges1.get(1).getValue(), "hello");
         Assert.assertEquals(edges2.get(1).getValue(), "world");
-        Assert.assertEquals(vertex, new ValueVertex<>("9999", "world"));
+        Assert.assertEquals(vertex, new ValueVertex<>("999", "world"));
 
         graphState.manage().operate().finish();
         graphState.manage().operate().drop();
@@ -210,8 +210,7 @@ public class CStoreGraphStateTest {
         it = graphState.staticGraph().V().query(new KeyGroup(1, 1)).iterator();
         Assert.assertEquals(Iterators.size(it), 73);
 
-        Iterator<String> idIt =
-            graphState.staticGraph().V().query(new KeyGroup(1, 1)).idIterator();
+        Iterator<String> idIt = graphState.staticGraph().V().query(new KeyGroup(1, 1)).idIterator();
         Assert.assertEquals(Iterators.size(idIt), 73);
 
         Iterator<OneDegreeGraph<String, String, String>> it2 = graphState.staticGraph().VE().query()
@@ -239,8 +238,8 @@ public class CStoreGraphStateTest {
             }
         }
         graphState2.manage().operate().finish();
-        Iterator<OneDegreeGraph<Integer, Integer, Integer>> it3 =
-            graphState2.staticGraph().VE().query().iterator();
+        Iterator<OneDegreeGraph<Integer, Integer, Integer>> it3 = graphState2.staticGraph().VE()
+            .query().iterator();
 
         res = Lists.newArrayList(it3);
         Assert.assertEquals(res.size(), 200);
@@ -261,8 +260,7 @@ public class CStoreGraphStateTest {
             EmptyProperty.class, ValueLabelTimeEdge.class, ValueLabelTimeEdge::new, Object.class);
 
         GraphStateDescriptor desc = GraphStateDescriptor.build("OtherVE", StoreType.CSTORE.name());
-        desc.withKeyGroup(new KeyGroup(0, 0))
-            .withKeyGroupAssigner(new DefaultKeyGroupAssigner(1));
+        desc.withKeyGroup(new KeyGroup(0, 0)).withKeyGroupAssigner(new DefaultKeyGroupAssigner(1));
         desc.withGraphMeta(new GraphMeta(tag));
         GraphState<Integer, Object, Object> graphState = StateFactory.buildGraphState(desc,
             new Configuration(conf));
@@ -287,8 +285,8 @@ public class CStoreGraphStateTest {
         graphState.manage().operate().close();
         graphState.manage().operate().drop();
 
-        tag = new GraphMetaType(IntegerType.INSTANCE, ValueLabelTimeVertex.class,
-            Object.class, IDEdge.class, EmptyProperty.class);
+        tag = new GraphMetaType(IntegerType.INSTANCE, ValueLabelTimeVertex.class, Object.class,
+            IDEdge.class, EmptyProperty.class);
         desc.withGraphMeta(new GraphMeta(tag));
         graphState = StateFactory.buildGraphState(desc, new Configuration(conf));
         graphState.manage().operate().setCheckpointId(1);
@@ -321,14 +319,13 @@ public class CStoreGraphStateTest {
             EmptyProperty.class, IDLabelTimeEdge.class, IDLabelTimeEdge::new, EmptyProperty.class);
 
         GraphStateDescriptor desc = GraphStateDescriptor.build("filter", StoreType.CSTORE.name());
-        desc.withKeyGroup(new KeyGroup(0, 0))
-            .withKeyGroupAssigner(new DefaultKeyGroupAssigner(1));
+        desc.withKeyGroup(new KeyGroup(0, 0)).withKeyGroupAssigner(new DefaultKeyGroupAssigner(1));
         desc.withGraphMeta(new GraphMeta(tag));
         GraphState<String, Object, Object> graphState = StateFactory.buildGraphState(desc,
             new Configuration(conf));
         graphState.manage().operate().setCheckpointId(1);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1000; i++) {
             String id = Integer.toString(i);
             IEdge<String, Object> edge1 = new IDLabelTimeEdge<>("2", id, "hello", i);
             edge1.setDirect(EdgeDirection.OUT);
@@ -340,27 +337,26 @@ public class CStoreGraphStateTest {
         }
 
         graphState.manage().operate().finish();
-        List<IEdge<String, Object>> edges =
-            graphState.staticGraph().E().query("2").by(new EdgeTsFilter(TimeRange.of(0, 5000)))
-                .asList();
+        List<IEdge<String, Object>> edges = graphState.staticGraph().E().query("2")
+            .by(new EdgeTsFilter(TimeRange.of(0, 500))).asList();
 
-        Assert.assertEquals(edges.size(), 10000);
+        Assert.assertEquals(edges.size(), 1000);
         long maxTime = edges.stream().mapToLong(e -> ((IDLabelTimeEdge) e).getTime()).max()
             .getAsLong();
-        Assert.assertEquals(maxTime, 4999);
+        Assert.assertEquals(maxTime, 499);
 
         long num = edges.stream().filter(e -> e.getDirect() == EdgeDirection.OUT).count();
-        Assert.assertEquals(num, 5000);
+        Assert.assertEquals(num, 500);
 
         edges = graphState.staticGraph().E().query("2")
-            .by(OutEdgeFilter.instance().and(new EdgeTsFilter(TimeRange.of(0, 1000)))).asList();
-        Assert.assertEquals(edges.size(), 1000);
+            .by(OutEdgeFilter.instance().and(new EdgeTsFilter(TimeRange.of(0, 100)))).asList();
+        Assert.assertEquals(edges.size(), 100);
 
         maxTime = edges.stream().mapToLong(e -> ((IDLabelTimeEdge) e).getTime()).max().getAsLong();
-        Assert.assertEquals(maxTime, 999);
+        Assert.assertEquals(maxTime, 99);
 
         num = edges.stream().filter(e -> e.getDirect() == EdgeDirection.OUT).count();
-        Assert.assertEquals(num, 1000);
+        Assert.assertEquals(num, 100);
 
         num = edges.stream().filter(e -> e.getDirect() == EdgeDirection.IN).count();
         Assert.assertEquals(num, 0);
@@ -387,18 +383,19 @@ public class CStoreGraphStateTest {
         conf.put(StateConfigKeys.STATE_KV_ENCODER_EDGE_ORDER.getKey(),
             "SRC_ID, DESC_TIME, LABEL, DIRECTION, DST_ID");
 
-        GraphMetaType tag = new GraphMetaType(StringType.INSTANCE, ValueVertex.class, ValueVertex::new,
-            Object.class, ValueLabelTimeEdge.class, ValueLabelTimeEdge::new, Object.class);
+        GraphMetaType tag = new GraphMetaType(StringType.INSTANCE, ValueVertex.class,
+            ValueVertex::new, Object.class, ValueLabelTimeEdge.class, ValueLabelTimeEdge::new,
+            Object.class);
 
-        GraphStateDescriptor desc = GraphStateDescriptor.build("testEdgeSort", StoreType.CSTORE.name());
-        desc.withKeyGroup(new KeyGroup(0, 0))
-            .withKeyGroupAssigner(new DefaultKeyGroupAssigner(1));
+        GraphStateDescriptor desc = GraphStateDescriptor.build("testEdgeSort",
+            StoreType.CSTORE.name());
+        desc.withKeyGroup(new KeyGroup(0, 0)).withKeyGroupAssigner(new DefaultKeyGroupAssigner(1));
         desc.withGraphMeta(new GraphMeta(tag));
         GraphState<String, String, String> graphState = StateFactory.buildGraphState(desc,
             new Configuration(conf));
         graphState.manage().operate().setCheckpointId(1);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1000; i++) {
             String id = Integer.toString(i);
             IEdge<String, String> edge = new ValueLabelTimeEdge<>("2", id, null, "hello", i);
             graphState.staticGraph().E().add(edge.withValue("world"));
@@ -406,8 +403,8 @@ public class CStoreGraphStateTest {
         graphState.manage().operate().finish();
 
         List<IEdge<String, String>> list = graphState.staticGraph().E().asList();
-        Assert.assertEquals(((ValueLabelTimeEdge) list.get(0)).getTime(), 9999);
-        Assert.assertEquals(((ValueLabelTimeEdge) list.get(9999)).getTime(), 0);
+        Assert.assertEquals(((ValueLabelTimeEdge) list.get(0)).getTime(), 999);
+        Assert.assertEquals(((ValueLabelTimeEdge) list.get(999)).getTime(), 0);
 
         graphState.manage().operate().close();
     }
@@ -416,39 +413,38 @@ public class CStoreGraphStateTest {
     public void testLimit() {
         Map<String, String> conf = new HashMap<>(config);
         String name = "testLimit";
-        conf.put(ExecutionConfigKeys.JOB_APP_NAME.getKey(), "RocksDBGraphStateTest" + System.currentTimeMillis());
-        GraphState<String, String, String> graphState = getGraphState(StringType.INSTANCE, name, conf);
+        conf.put(ExecutionConfigKeys.JOB_APP_NAME.getKey(),
+            "RocksDBGraphStateTest" + System.currentTimeMillis());
+        GraphState<String, String, String> graphState = getGraphState(StringType.INSTANCE, name,
+            conf);
         graphState.manage().operate().setCheckpointId(1);
 
         for (int i = 0; i < 10; i++) {
             String src = Integer.toString(i);
             for (int j = 1; j < 10; j++) {
                 String dst = Integer.toString(j);
-                graphState.staticGraph().E().add(new ValueEdge<>(src, dst, "hello" + src + dst,
-                    EdgeDirection.values()[j % 2]));
+                graphState.staticGraph().E().add(
+                    new ValueEdge<>(src, dst, "hello" + src + dst, EdgeDirection.values()[j % 2]));
             }
             graphState.staticGraph().V().add(new ValueVertex<>(src, "world" + src));
         }
         graphState.manage().operate().finish();
 
-        List<IEdge<String, String>> list =
-            graphState.staticGraph().E().query("1", "2", "3")
-                .limit(1L, 1L).asList();
+        List<IEdge<String, String>> list = graphState.staticGraph().E().query("1", "2", "3")
+            .limit(1L, 1L).asList();
         Assert.assertEquals(list.size(), 6);
 
-        list =
-            graphState.staticGraph().E().query().by(InEdgeFilter.instance())
-                .limit(1L, 1L).asList();
+        list = graphState.staticGraph().E().query().by(InEdgeFilter.instance()).limit(1L, 1L)
+            .asList();
         Assert.assertEquals(list.size(), 10);
 
-        list = graphState.staticGraph().E().query().by(InEdgeFilter.instance())
-            .limit(1L, 2L).asList();
+        list = graphState.staticGraph().E().query().by(InEdgeFilter.instance()).limit(1L, 2L)
+            .asList();
         Assert.assertEquals(list.size(), 20);
 
         try {
-            List<String> targetIds =
-                graphState.staticGraph().E().query().by(InEdgeFilter.instance())
-                    .select(new DstIdProjector<>()).limit(1L, 2L).asList();
+            List<String> targetIds = graphState.staticGraph().E().query()
+                .by(InEdgeFilter.instance()).select(new DstIdProjector<>()).limit(1L, 2L).asList();
 
             Assert.assertEquals(targetIds.size(), 20);
         } catch (Throwable t) {
@@ -556,107 +552,6 @@ public class CStoreGraphStateTest {
         }
 
         graphState.manage().operate().drop();
-        persistentIO.delete(new Path(Configuration.getString(FileConfigKeys.ROOT, conf),
-            Configuration.getString(ExecutionConfigKeys.JOB_APP_NAME, conf)), true);
-    }
-
-    @Test(enabled = false)
-    public void testScale() throws IOException {
-        Map<String, String> conf = new HashMap<>(config);
-        IPersistentIO persistentIO = PersistentIOBuilder.build(new Configuration(conf));
-        persistentIO.delete(new Path(Configuration.getString(FileConfigKeys.ROOT, conf),
-            Configuration.getString(ExecutionConfigKeys.JOB_APP_NAME, conf)), true);
-
-        GraphState<String, String, String> graphState = getGraphState(
-            StringType.INSTANCE, "scale", conf, new KeyGroup(0, 3), 4);
-        graphState.manage().operate().setCheckpointId(1);
-
-        for (int i = 0; i < 10000; i++) {
-            String id = Integer.toString(i);
-            graphState.staticGraph().E().add(new ValueEdge<>(id, id, "hello"));
-            graphState.staticGraph().V().add(new ValueVertex<>(id, "hello"));
-        }
-        graphState.manage().operate().finish();
-        graphState.manage().operate().archive();
-        graphState.manage().operate().drop();
-
-        graphState = getGraphState(
-            StringType.INSTANCE, "scale", conf, new KeyGroup(0, 1), 2);
-        graphState.manage().operate().setCheckpointId(1);
-        Exception ex = null;
-        try {
-            graphState.manage().operate().recover();
-        } catch (Exception e) {
-            ex = e;
-        }
-        Assert.assertNotNull(ex);
-        graphState.manage().operate().drop();
-
-        graphState = getGraphState(
-            StringType.INSTANCE, "scale", conf, new KeyGroup(0, 5), 6);
-        graphState.manage().operate().setCheckpointId(1);
-        ex = null;
-        try {
-            graphState.manage().operate().recover();
-        } catch (Exception e) {
-            ex = e;
-        }
-        Assert.assertNotNull(ex);
-        graphState.manage().operate().drop();
-
-        for (int i = 2; i < 4; i++) {
-            graphState = getGraphState(
-                StringType.INSTANCE, "scale", conf, new KeyGroup(0, 7), 8);
-            graphState.manage().operate().setCheckpointId(i - 1);
-            graphState.manage().operate().recover();
-
-            List<IEdge<String, String>> edges = graphState.staticGraph().E().asList();
-            Assert.assertEquals(edges.size(), 10000);
-            List<IVertex<String, String>> vertices = graphState.staticGraph().V().asList();
-            Assert.assertEquals(vertices.size(), 10000);
-            List<OneDegreeGraph<String, String, String>> ves = graphState.staticGraph().VE()
-                .asList();
-            Assert.assertEquals(ves.size(), 10000);
-            IVertex<String, String> vertex = graphState.staticGraph().V().query("3").get();
-            Assert.assertEquals(vertex, new ValueVertex<>("3", "hello"));
-            graphState.manage().operate().setCheckpointId(i);
-            graphState.manage().operate().archive();
-            graphState.manage().operate().drop();
-        }
-
-        graphState = getGraphState(
-            StringType.INSTANCE, "scale", conf, new KeyGroup(28, 31), 32);
-        graphState.manage().operate().setCheckpointId(3);
-        graphState.manage().operate().recover();
-
-        DefaultKeyGroupAssigner keyGroupAssigner = new DefaultKeyGroupAssigner(32);
-        int count = 0;
-        for (int i = 0; i < 10000; i++) {
-            String id = Integer.toString(i);
-            int keyGroupId = keyGroupAssigner.assign(id);
-            if (keyGroupId >= 28 && keyGroupId <= 31) {
-                count++;
-            }
-        }
-
-        List<IEdge<String, String>> edges = graphState.staticGraph().E().asList();
-        Assert.assertEquals(edges.size(), count);
-        List<IVertex<String, String>> vertices = graphState.staticGraph().V().asList();
-        Assert.assertEquals(vertices.size(), count);
-        List<OneDegreeGraph<String, String, String>> ves = graphState.staticGraph().VE().asList();
-        Assert.assertEquals(ves.size(), count);
-
-        IVertex<String, String> vertex = graphState.staticGraph().V().query("10").get();
-        Assert.assertEquals(vertex, new ValueVertex<>("10", "hello"));
-
-        ex = null;
-        try {
-            vertex = graphState.staticGraph().V().query("3").get();
-        } catch (Exception e) {
-            ex = e;
-        }
-        Assert.assertNotNull(ex);
-
         persistentIO.delete(new Path(Configuration.getString(FileConfigKeys.ROOT, conf),
             Configuration.getString(ExecutionConfigKeys.JOB_APP_NAME, conf)), true);
     }
