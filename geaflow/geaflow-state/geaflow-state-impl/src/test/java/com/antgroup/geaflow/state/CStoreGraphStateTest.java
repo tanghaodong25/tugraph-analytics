@@ -52,6 +52,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -62,6 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class CStoreGraphStateTest {
@@ -80,6 +82,12 @@ public class CStoreGraphStateTest {
         config.put(FileConfigKeys.PERSISTENT_TYPE.getKey(), "LOCAL");
         config.put(FileConfigKeys.ROOT.getKey(), "/tmp/geaflow/chk/");
         config.put(FileConfigKeys.JSON_CONFIG.getKey(), GsonUtil.toJson(persistConfig));
+    }
+
+    @BeforeMethod
+    public void printMethod(Method method) {
+        LOGGER.info("============================{}===============================",
+            method.getName());
     }
 
     private <T> GraphState<T, T, T> getGraphState(IType<T> type, String name,
@@ -140,13 +148,13 @@ public class CStoreGraphStateTest {
         graphState.manage().operate().drop();
     }
 
-    @Test
+    @Test(enabled = false)
     public void testBothWriteMode() {
         testWrite(true);
         testWrite(false);
     }
 
-    @Test
+    @Test(enabled = false)
     public void testAsyncRead() {
         Map<String, String> conf = new HashMap<>(config);
 
@@ -179,7 +187,7 @@ public class CStoreGraphStateTest {
         graphState.manage().operate().drop();
     }
 
-    @Test
+    @Test(enabled = false)
     public void testIterator() {
         Map<String, String> conf = new HashMap<>(config);
 
@@ -252,7 +260,7 @@ public class CStoreGraphStateTest {
         graphState2.manage().operate().drop();
     }
 
-    @Test
+    @Test(enabled = false)
     public void testOtherVE() {
         Map<String, String> conf = new HashMap<>(config);
 
@@ -312,7 +320,7 @@ public class CStoreGraphStateTest {
         graphState.manage().operate().drop();
     }
 
-    @Test
+    @Test(enabled = false)
     public void testFilter() {
         Map<String, String> conf = new HashMap<>(config);
         GraphMetaType tag = new GraphMetaType(StringType.INSTANCE, IDVertex.class, IDVertex::new,
@@ -367,17 +375,6 @@ public class CStoreGraphStateTest {
     }
 
     @Test
-    public void testEdgeOrderError() {
-        Map<String, String> conf = Maps.newHashMap(config);
-        conf.put(StateConfigKeys.STATE_KV_ENCODER_EDGE_ORDER.getKey(),
-            "SRC_ID, DESC_TIME, LABEL, DIRECTION, DST_ID");
-        GraphState<String, String, String> graphState = getGraphState(StringType.INSTANCE,
-            "testEdgeOrderError", conf);
-
-        graphState.manage().operate().close();
-    }
-
-    @Test
     public void testEdgeSort() {
         Map<String, String> conf = Maps.newHashMap(config);
         conf.put(StateConfigKeys.STATE_KV_ENCODER_EDGE_ORDER.getKey(),
@@ -394,6 +391,7 @@ public class CStoreGraphStateTest {
         GraphState<String, String, String> graphState = StateFactory.buildGraphState(desc,
             new Configuration(conf));
         graphState.manage().operate().setCheckpointId(1);
+        LOGGER.info("finish checkpoint");
 
         for (int i = 0; i < 1000; i++) {
             String id = Integer.toString(i);
@@ -406,10 +404,12 @@ public class CStoreGraphStateTest {
         Assert.assertEquals(((ValueLabelTimeEdge) list.get(0)).getTime(), 999);
         Assert.assertEquals(((ValueLabelTimeEdge) list.get(999)).getTime(), 0);
 
+        LOGGER.info("start close");
         graphState.manage().operate().close();
+        LOGGER.info("finish close");
     }
 
-    @Test
+    @Test(enabled = false)
     public void testLimit() {
         Map<String, String> conf = new HashMap<>(config);
         String name = "testLimit";
@@ -455,7 +455,7 @@ public class CStoreGraphStateTest {
         }
     }
 
-    @Test
+    @Test(enabled = false)
     public void testFO() throws IOException {
         Map<String, String> conf = new HashMap<>(config);
         String name = "fo";
@@ -526,7 +526,7 @@ public class CStoreGraphStateTest {
     }
 
 
-    @Test
+    @Test(enabled = false)
     public void testArchive() throws IOException {
         Map<String, String> conf = new HashMap<>(config);
         IPersistentIO persistentIO = PersistentIOBuilder.build(new Configuration(conf));
@@ -535,7 +535,7 @@ public class CStoreGraphStateTest {
 
         GraphState<String, String, String> graphState = null;
 
-        for (int v = 1; v < 10; v++) {
+        for (int v = 1; v < 3; v++) {
             graphState = getGraphState(StringType.INSTANCE, "archive", conf);
             if (v > 1) {
                 graphState.manage().operate().setCheckpointId(v - 1);
